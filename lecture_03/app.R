@@ -125,9 +125,11 @@ server <- function(input, output) {
   
   output$displayNumber <- renderText({"42"})
   
- observeEvent(input$generateButton, {
-   output$displayNumber <- renderText({sample(1:9999, 1)})
-   })
+  # the below code is not Lesson 4!
+  # just wanted to try this out on my own already in lesson 3
+  observeEvent(input$generateButton, {
+    output$displayNumber <- renderText({sample(1:9999, 1)})
+  })
  }
  
 

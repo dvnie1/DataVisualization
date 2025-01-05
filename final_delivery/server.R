@@ -10,6 +10,7 @@
 library(shiny)
 library(leaflet)
 library(dplyr)
+library(purrr)
 
 source("global.R")
 
@@ -60,7 +61,11 @@ render_options <- I(
 # Define server logic required to draw a histogram
 function(input, output, session) {
 
-  filtered_geo_json <- reactiveVal(initial_attacked_countries)
+  applied_filters <- reactiveValues(data = list(
+    'attack_types' = NULL,
+    'protocol' = NULL,
+    'target_systems' = NULL
+  ))
   
   output$mymap <- renderLeaflet({ 
     basemap
@@ -81,25 +86,43 @@ function(input, output, session) {
       
       if(length(input$attackType) != 1 && all_attacks()){
         selected_value <- input$attackType[[which(unlist(input$attackType) != "All")[1]]]
-        print(paste("Selecting: ", selected_value))
         all_attacks(FALSE)
+        
+        applied_filters$data[["attack_types"]] <- function(data){
+          data %>% filter(attack_type == selected_value)
+        }
       }else if(!all_attacks()){
         all_attacks(TRUE)
+        applied_filters$data[["attack_types"]] <- NULL
       }
       
       updateSelectizeInput(session, 'attackType', selected = selected_value)
     }else{
-      filtered_geo_json(calculate_geojson_data(valid_attacks %>% filter(attack_type == "Brute Force")))
+      applied_filters$data[["attack_types"]] <- function(data){
+        data %>% filter(attack_type %in% as.list(input$attackType))
+      }
     }
   })
   
   # Update map with filtered GeoJSON
   observe({
     
-    print(paste("Current length: ", length(filtered_geo_json())))
+    active_filters <- Filter(Negate(is.null), applied_filters$data)
     
-    leafletProxy("mymap", data = filtered_geo_json()) %>%
+    filtered_geo_json <- calculate_geojson_data(reduce(
+      .x = active_filters, 
+      .f = function(data, filter_func){
+        filter_func(data)
+      },
+      .init = valid_attacks
+    ))
+    
+    # Create a color palette based on attack count (yellow to redish colors. Gray is used as default)
+    palette <- colorBin("YlOrRd", domain = filtered_geo_json$attack_count, bins = 5, na.color = "gray")
+    
+    leafletProxy("mymap", data = filtered_geo_json) %>%
       clearShapes() %>%  # Clear existing polygons
+      clearControls() %>%
       addPolygons(
         fillColor = ~palette(attack_count),
         color = "black", # Border color
@@ -107,6 +130,12 @@ function(input, output, session) {
         fillOpacity = 0.7, # Transparency
         popup = ~paste0("<b>Country:</b> ", GEOUNIT, "<br>",
                         "<b>Attack Count:</b> ", ifelse(is.na(attack_count), "0", attack_count))
+      ) %>%
+      addLegend(
+        pal = palette,
+        values = ~attack_count,
+        title = "Attack Count",
+        position = "bottomright"
       )
   })
   

@@ -60,11 +60,14 @@ render_options <- I(
 
 # Define server logic required to draw a histogram
 function(input, output, session) {
+  
+  # Reactive flag to control observer activation
+  observer_active <- reactiveValues(active = FALSE)
 
   applied_filters <- reactiveValues(data = list(
-    'attack_types' = NULL,
+    'attackType' = NULL,
     'protocol' = NULL,
-    'target_systems' = NULL
+    'affectedSystems' = NULL
   ))
   
   output$mymap <- renderLeaflet({ 
@@ -72,36 +75,24 @@ function(input, output, session) {
   })
   
   all_attacks <- reactiveVal(TRUE)
+  all_protocol <- reactiveVal(TRUE)
+  all_targets <- reactiveVal(TRUE)
   
   # Only calls it once since valid_attacks is only processed once
-  updateSelectizeInput(session, 'attackType', choices = c("All", unique(valid_attacks$attack_type)), selected = "All", server = TRUE, options = list(render = render_options))
+  updateSelectizeInput(session, 'attack_type', choices = c("All", unique(valid_attacks$attack_type)), selected = "All", server = TRUE, options = list(render = render_options))
+  updateSelectizeInput(session, 'protocol', choices = c("All", unique(valid_attacks$protocol)), selected = "All", server = TRUE, options = list(render = render_options))
+  updateSelectizeInput(session, 'affected_system', choices = c("All", unique(valid_attacks$affected_system)), selected = "All", server = TRUE, options = list(render = render_options))
   
-  observeEvent(input$attackType, {
-    
-    if(length(input$attackType) == 1 && all_attacks()){return ()}
-    
-    if ("All" %in% input$attackType) {
-      
-      selected_value <- "All"
-      
-      if(length(input$attackType) != 1 && all_attacks()){
-        selected_value <- input$attackType[[which(unlist(input$attackType) != "All")[1]]]
-        all_attacks(FALSE)
-        
-        applied_filters$data[["attack_types"]] <- function(data){
-          data %>% filter(attack_type == selected_value)
-        }
-      }else if(!all_attacks()){
-        all_attacks(TRUE)
-        applied_filters$data[["attack_types"]] <- NULL
-      }
-      
-      updateSelectizeInput(session, 'attackType', selected = selected_value)
-    }else{
-      applied_filters$data[["attack_types"]] <- function(data){
-        data %>% filter(attack_type %in% as.list(input$attackType))
-      }
-    }
+  observeEvent(input$attack_type, {
+    applied_filters$data[["attackType"]] <- determine_filter_expr(input$attack_type, "attack_type", session, all_attacks)
+  })
+  
+  observeEvent(input$protocol, {
+    applied_filters$data[["protocol"]] <- determine_filter_expr(input$protocol, "protocol", session, all_protocol)
+  })
+  
+  observeEvent(input$affected_system, {
+    applied_filters$data[["affectedSystem"]] <- determine_filter_expr(input$affected_system, "affected_system", session, all_targets)
   })
   
   # Update map with filtered GeoJSON

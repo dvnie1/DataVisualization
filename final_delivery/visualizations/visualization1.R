@@ -7,8 +7,20 @@ render_sidebar_first <- function(){
   sidebar(
     helpText("Filter options to analyze different countries"),
     selectizeInput(
-      "attackType",
+      "attack_type",
       label = "Attack Type",
+      multiple = TRUE,
+      choices = NULL
+    ),
+    selectizeInput(
+      "protocol",
+      label = "Protocol",
+      multiple = TRUE,
+      choices = NULL
+    ),
+    selectizeInput(
+      "affected_system",
+      label = "Affected Systems",
       multiple = TRUE,
       choices = NULL
     )

@@ -30,16 +30,7 @@ link_posit <- tags$a(shiny::icon("r-project"),
 
 theme <- bs_theme(bootswatch = "litera")
 
-extract_values <- function(input_string) {
-  # Extract the values between double quotes
-  extracted_values <- unlist(regmatches(input_string, gregexpr('\"[^\"]+\"', input_string)))
-  
-  # Remove the surrounding double quotes
-  cleaned_values <- gsub('\"', '', extracted_values)
-  
-  return(cleaned_values)
-}
-
+# Adds the attack counter to the geojson data to aggregate data
 calculate_geojson_data <- function(data){
   
   # Since we have multiple coincidences we just group them for easier rendering
@@ -52,4 +43,32 @@ calculate_geojson_data <- function(data){
   
   # Add attack_count column to geo information
   countries_geo %>% left_join(aggregated_data, by = c("ADM0_A3" = "alpha_3"))
+}
+
+determine_filter_expr <- function(selector, key_name, session, oper_tracker){
+  
+  if(length(selector) == 1 && oper_tracker()){
+    
+    return(NULL)
+    
+  }else if ("All" %in% selector) {
+    
+    selected_value <- "All"
+    
+    if(length(selector) != 1 && oper_tracker()){
+      selected_value <- selector[[which(unlist(selector) != "All")[1]]]
+      oper_tracker(FALSE)
+    }else if(!oper_tracker()){
+      oper_tracker(TRUE)
+    }
+    
+    updateSelectizeInput(session, key_name, selected = selected_value)
+  }else{
+    return(function(data){
+      data %>% filter(.data[[key_name]] %in% as.list(selector))
+    })
+    
+  }
+  
+  return(NULL)
 }

@@ -2,7 +2,8 @@ library(bslib)
 library(readr)
 library(snakecase)
 library(dplyr)
-library(sf) 
+library(sf)
+import(rlang)
 
 # All data is loaded from the root of the Github repo
 

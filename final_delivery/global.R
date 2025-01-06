@@ -3,7 +3,7 @@ library(readr)
 library(snakecase)
 library(dplyr)
 library(sf)
-import(rlang)
+library(rlang)
 
 # All data is loaded from the root of the Github repo
 

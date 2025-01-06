@@ -152,7 +152,15 @@ function(input, output, session) {
   
   data_for_vis3 <- reactive({
     # Prepare data for visualization 3
-    data <- data %>% 
+    filtered_data <- data
+    
+    # Apply confidence level filtering if not "All"
+    if (!"All" %in% input$confidence_levels) {
+      filtered_data <- filtered_data %>%
+        filter(confidence_level %in% input$confidence_levels)
+    }
+    
+    data <- filtered_data %>% 
       select(ml_model, payload_size_bytes) %>% 
       mutate(payload_size_kb = payload_size_bytes / 1024) %>% 
       group_by(ml_model) %>% 

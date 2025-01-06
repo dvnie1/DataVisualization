@@ -4,7 +4,7 @@ library(leaflet)
 source("global.R")
 
 render_sidebar_first <- function(){
-  sidebar(
+  card(
     helpText("Filter options to analyze different countries"),
     selectizeInput(
       "attack_type",

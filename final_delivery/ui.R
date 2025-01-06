@@ -28,15 +28,19 @@ fillPage(
       page_sidebar(
         title = p("Is there any geographical pattern based on attack type, protocol or targeted system?", class="lead"),
         theme = theme,
-        sidebar = render_sidebar_first(),
+        fillable = TRUE,
+        sidebar(
+          render_sidebar_first(),
+          width = 400,
+        ),
         render_first()
       )
     ),
     nav_panel(
       title = "Visualization 2",
       page_sidebar(
-        title = p("Does the payload size play a critical role in the distribution of confidence levels when classifying attacks based on ML Models or Affected systems?", class="lead"),
         theme = theme,
+        title = p("Are there specific days of the week or hours where trends occur (attack type, targeted system)?", class="lead"),
         sidebar = sidebar(
           "Shiny is available on CRAN, so you can install it in the usual way from your R console:",
           code('install.packages("shiny")'),
@@ -47,7 +51,7 @@ fillPage(
     nav_panel(
       title = "Visualization 3",
       page_sidebar(
-        title = p("Are there specific days of the week or hours where trends occur (attack type, targeted system)?", class="lead"),
+        title = p("Does the payload size play a critical role in the distribution of confidence levels when classifying attacks based on ML Models or Affected systems?", class="lead"),
         theme = theme,
         sidebar = sidebar(
           "Shiny is available on CRAN, so you can install it in the usual way from your R console:",

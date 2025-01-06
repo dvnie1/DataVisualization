@@ -11,10 +11,11 @@ library(shiny)
 library(leaflet)
 library(dplyr)
 library(purrr)
+library(ggplot2)
 
 source("global.R")
 
-# Render initial map with NO filters
+# Render initial map with NO filters for Visualization 1
 initial_attacked_countries <- calculate_geojson_data(valid_attacks)
 
 # Create a color palette based on attack count (yellow to redish colors. Gray is used as default)
@@ -58,12 +59,15 @@ render_options <- I(
     }'
 )
 
-# Define server logic required to draw a histogram
+# Define server logic
 function(input, output, session) {
+  # ===================
+  # Visualization 1 Logic
+  # ===================
   
   # Reactive flag to control observer activation
   observer_active <- reactiveValues(active = FALSE)
-
+  
   applied_filters <- reactiveValues(data = list(
     'attackType' = NULL,
     'protocol' = NULL,
@@ -141,5 +145,10 @@ function(input, output, session) {
         position = "bottomright"
       )
   })
+  
+  # ===================
+  # Visualization 3 Logic
+  # ===================
+  
   
 }

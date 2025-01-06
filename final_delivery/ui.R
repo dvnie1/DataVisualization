@@ -50,11 +50,11 @@ fillPage(
     nav_panel(
       title = "Visualization 3",
       page_sidebar(
-        title = p("Does the payload size play a critical role in the distribution of confidence levels when classifying attacks based on ML Models or Affected systems?", class="lead"),
+        title = p("Does the payload size play a critical role in the distribution of confidence levels when classifying attacks based on ML Models or Affected systems?", class = "lead"),
         theme = theme,
         sidebar = sidebar(
-          "Shiny is available on CRAN, so you can install it in the usual way from your R console:",
-          code('install.packages("shiny")'),
+          render_sidebar_third(),
+          width = 400,
         ),
         render_third()
       )

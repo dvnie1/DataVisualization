@@ -150,5 +150,31 @@ function(input, output, session) {
   # Visualization 3 Logic
   # ===================
   
+  data_for_vis3 <- reactive({
+    # Prepare data for visualization 3
+    data <- data %>% 
+      select(ml_model, payload_size_bytes) %>% 
+      mutate(payload_size_kb = payload_size_bytes / 1024) %>% 
+      group_by(ml_model) %>% 
+      summarise(mean_payload = mean(payload_size_kb, na.rm = TRUE), .groups = "drop")
+    
+    return(data)
+  })
   
+  output$vis3_plot <- renderPlot({
+    data <- data_for_vis3()
+    
+    ggplot(data, aes(x = ml_model, y = mean_payload, fill = ml_model)) +
+      geom_bar(stat = "identity") +
+      theme_minimal() +
+      labs(
+        title = "Payload Size by ML Model",
+        x = "ML Model",
+        y = "Payload Size (kB)"
+      ) +
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none"
+      )
+  })
 }

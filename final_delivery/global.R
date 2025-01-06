@@ -18,6 +18,8 @@ countries_list <- read_csv("data/countries_codes_and_coordinates.csv", name_repa
 data <- read_csv("data/cyberattacks_detection.csv", name_repair = as_function(to_snake_case))
 valid_attacks <- merge(data, countries_list, by.x = "destination_country", by.y = "country") %>% select(source_country, destination_country, attack_type, protocol, affected_system, alpha_3)
 
+print("PRINTING HERE ...")
+print(colnames(data))
 
 link_shiny <- tags$a(shiny::icon("github"),
                      "Shiny",

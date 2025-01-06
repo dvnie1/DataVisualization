@@ -21,22 +21,8 @@ initial_attacked_countries <- calculate_geojson_data(valid_attacks)
 palette <- colorBin("YlOrRd", domain = initial_attacked_countries$attack_count, bins = 5, na.color = "gray")
 
 # Create the Leaflet map
-basemap <- leaflet(initial_attacked_countries, options = leafletOptions(minZoom = 2)) %>%
+basemap <- leaflet(options = leafletOptions(minZoom = 2)) %>%
   addTiles() %>%
-  addPolygons(
-    fillColor = ~palette(attack_count),
-    color = "black", # Border color
-    weight = 1, # Border thickness
-    fillOpacity = 0.7, # Transparency
-    popup = ~paste0("<b>Country:</b> ", GEOUNIT, "<br>",
-                    "<b>Attack Count:</b> ", ifelse(is.na(attack_count), "0", attack_count))
-  ) %>%
-  addLegend(
-    pal = palette,
-    values = ~attack_count,
-    title = "Attack Count",
-    position = "bottomright"
-  ) %>%
   setView(lng = 14.91946, lat = 12.02342, zoom = 2) %>%
   setMaxBounds(
     lng1 = -180, lat1 = -90,  # Southwest corner of Europe
@@ -60,6 +46,10 @@ render_options <- I(
 
 # Define server logic required to draw a histogram
 function(input, output, session) {
+  
+  #################################################################
+  ##                    Visualization 1                          ##
+  #################################################################
   
   # Reactive flag to control observer activation
   observer_active <- reactiveValues(active = FALSE)
@@ -141,5 +131,9 @@ function(input, output, session) {
         position = "bottomright"
       )
   })
+  
+  #################################################################
+  ##                    Visualization 2                          ##
+  #################################################################
   
 }

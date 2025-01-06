@@ -29,7 +29,7 @@ link_posit <- tags$a(shiny::icon("r-project"),
                      href = "https://posit.co",
                      target = "_blank")
 
-theme <- bs_theme(bootswatch = "litera")
+theme <- bs_theme(bootswatch = "sandstone")
 
 # Adds the attack counter to the geojson data to aggregate data
 calculate_geojson_data <- function(data){

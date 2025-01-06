@@ -5,8 +5,8 @@ source("global.R")
 
 render_sidebar_first <- function(){
   card(
-    helpText("Filter options to analyze different countries"),
-    selectizeInput(
+    card_header(helpText("Filter options to analyze different countries")),
+    card_body(selectizeInput(
       "attack_type",
       label = "Attack Type",
       multiple = TRUE,
@@ -23,12 +23,13 @@ render_sidebar_first <- function(){
       label = "Affected Systems",
       multiple = TRUE,
       choices = NULL
-    )
+    )),
+    min_height = "100vh"
   )
 }
 
 render_first <- function(){
   card(
-    leafletOutput("mymap", width="100%", height="100%")
+    leafletOutput("mymap")
   )
 }

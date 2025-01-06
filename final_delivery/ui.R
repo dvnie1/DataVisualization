@@ -18,7 +18,13 @@ source("visualizations/visualization2.R")
 source("visualizations/visualization3.R")
 
 # Define UI for application that draws a histogram
-fillPage(
+page_fluid(
+  tags$style(HTML("
+    .full-sidebar {
+      min-height: 100vh; /* Full viewport height */
+    }
+  ")),
+  
   # Application title
   wellPanel(titlePanel("Final Delivery - Data Visualization")),
   
@@ -27,18 +33,18 @@ fillPage(
       title = "Visualization 1",
       page_sidebar(
         title = p("Is there any geographical pattern based on attack type, protocol or targeted system?", class="lead"),
-        theme = theme,
         sidebar = sidebar(
           render_sidebar_first(),
-          width = 400,
+          width = 400
         ),
+        fillable=TRUE, 
+        fill=TRUE,
         render_first()
       )
     ),
     nav_panel(
       title = "Visualization 2",
-      page_sidebar(
-        theme = theme,
+      layout_sidebar(
         title = p("Are there specific days of the week or hours where trends occur (attack type, targeted system)?", class="lead"),
         sidebar = sidebar(
           "Shiny is available on CRAN, so you can install it in the usual way from your R console:",
@@ -49,9 +55,8 @@ fillPage(
     ),
     nav_panel(
       title = "Visualization 3",
-      page_sidebar(
+      layout_sidebar(
         title = p("Does the payload size play a critical role in the distribution of confidence levels when classifying attacks based on ML Models or Affected systems?", class="lead"),
-        theme = theme,
         sidebar = sidebar(
           "Shiny is available on CRAN, so you can install it in the usual way from your R console:",
           code('install.packages("shiny")'),
@@ -61,5 +66,6 @@ fillPage(
     ),
     nav_spacer(),
     nav_menu(title = "Links", nav_item(link_shiny), nav_item(link_posit))
-  )
+  ),
+  theme = theme
 )

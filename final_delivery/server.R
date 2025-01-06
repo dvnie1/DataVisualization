@@ -84,15 +84,27 @@ function(input, output, session) {
   updateSelectizeInput(session, 'affected_system', choices = c("All", unique(valid_attacks$affected_system)), selected = "All", server = TRUE, options = list(render = render_options))
   
   observeEvent(input$attack_type, {
-    applied_filters$data[["attackType"]] <- determine_filter_expr(input$attack_type, "attack_type", session, all_attacks)
+    computed <- determine_filter_expr(input$attack_type, "attack_type", session, all_attacks)
+    
+    if(!identical(computed, applied_filters$data$attackType)){
+      applied_filters$data$attackType <- computed
+    }
   })
   
   observeEvent(input$protocol, {
-    applied_filters$data[["protocol"]] <- determine_filter_expr(input$protocol, "protocol", session, all_protocol)
+    computed <- determine_filter_expr(input$protocol, "protocol", session, all_protocol)
+    
+    if(!identical(computed, applied_filters$data$protocol)){
+      applied_filters$data$protocol <- computed
+    }
   })
   
   observeEvent(input$affected_system, {
-    applied_filters$data[["affectedSystem"]] <- determine_filter_expr(input$affected_system, "affected_system", session, all_targets)
+    computed <- determine_filter_expr(input$affected_system, "affected_system", session, all_targets)
+    
+    if(!identical(computed, applied_filters$data$affectedSystem)){
+      applied_filters$data$affectedSystems <- computed
+    }
   })
   
   # Update map with filtered GeoJSON

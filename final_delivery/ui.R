@@ -28,8 +28,7 @@ fillPage(
       page_sidebar(
         title = p("Is there any geographical pattern based on attack type, protocol or targeted system?", class="lead"),
         theme = theme,
-        fillable = TRUE,
-        sidebar(
+        sidebar = sidebar(
           render_sidebar_first(),
           width = 400,
         ),

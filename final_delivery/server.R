@@ -134,7 +134,7 @@ function(input, output, session) {
   ##                    Visualization 2                          ##
   #################################################################
   
-  attacks_with_timestamp <- data %>% filter(!is.na(timestamp)) %>% select(destination_country, source_country, timestamp, attack_type, affected_system)
+  attacks_with_timestamp <- data %>% filter(!is.na(timestamp)) %>% select(destination_country, source_country, timestamp, attack_type, affected_system, detection_label)
   attacks_with_timestamp$timestamp <- as.POSIXlt(attacks_with_timestamp$timestamp, format="%m/%d/%Y %H:%M")
   
   observe({
@@ -150,6 +150,12 @@ function(input, output, session) {
   
   # Filter data based in input
   filtered_attacks <- reactive(attacks_with_timestamp %>% filter(timestamp > as.POSIXlt(input$date_selector[[1]]) & timestamp < as.POSIXlt(input$date_selector[[2]])))
+  selected_set <- reactive(c())
+  
+  output$attack_type_count <- renderText({
+    detection_percentage <- filtered_attacks() %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
+    detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage)
+  })
   
   output$heatmap <- renderPlotly({
     df <- filtered_attacks()
@@ -185,12 +191,14 @@ function(input, output, session) {
       
       week_heatmap <- render_heatmap(df=df_week, x_axis_name="Week")
       g_plot <- ggplotly(week_heatmap, tooltip = "text")
+      selected_set <- df_week
     }else{
       # Tooltip message
       df_hour$tooltip <- paste("Timeframe:", sprintf("%02d:00", df_hour$x_axis)," - ", sprintf("%02d:59", df_hour$x_axis), "<br>Attack Count:", df_hour$incidents)
       
       hour_heatmap <- render_heatmap(df=df_hour, x_axis_name="Hour")
       g_plot <- ggplotly(hour_heatmap, tooltip = "text")
+      selected_set <- df_hour
     }
     
     g_plot %>%
@@ -203,5 +211,19 @@ function(input, output, session) {
         )
       )
     
+  })
+  
+  # Capture the click event and extract the selected box
+  output$selected_box <- renderPrint({
+    click_data  <- event_data("plotly_click")
+    if (!is.null(click_data)) {
+      if("date" %in% colnames(selected_set())){
+        "Week View"
+      }else{
+        "Hour View"
+      }
+    } else {
+      "Click on a box to see its details"
+    }
   })
 }

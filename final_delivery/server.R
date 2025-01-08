@@ -150,7 +150,7 @@ function(input, output, session) {
   
   # Filter data based in input
   filtered_attacks <- reactive(attacks_with_timestamp %>% filter(timestamp > as.POSIXlt(input$date_selector[[1]]) & timestamp < as.POSIXlt(input$date_selector[[2]])))
-  selected_set <- reactive(c())
+  selected_set <- reactiveValues(data = NULL)
   
   output$attack_type_count <- renderText({
     detection_percentage <- filtered_attacks() %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
@@ -191,14 +191,14 @@ function(input, output, session) {
       
       week_heatmap <- render_heatmap(df=df_week, x_axis_name="Week")
       g_plot <- ggplotly(week_heatmap, tooltip = "text")
-      selected_set <- df_week
+      selected_set$data <- df_week
     }else{
       # Tooltip message
       df_hour$tooltip <- paste("Timeframe:", sprintf("%02d:00", df_hour$x_axis)," - ", sprintf("%02d:59", df_hour$x_axis), "<br>Attack Count:", df_hour$incidents)
       
       hour_heatmap <- render_heatmap(df=df_hour, x_axis_name="Hour")
       g_plot <- ggplotly(hour_heatmap, tooltip = "text")
-      selected_set <- df_hour
+      selected_set$data <- df_hour
     }
     
     g_plot %>%
@@ -217,13 +217,9 @@ function(input, output, session) {
   output$selected_box <- renderPrint({
     click_data  <- event_data("plotly_click")
     if (!is.null(click_data)) {
-      if("date" %in% colnames(selected_set())){
-        "Week View"
-      }else{
-        "Hour View"
-      }
+      paste(click_data, selected_set$data)
     } else {
-      "Click on a box to see its details"
+      colnames(selected_set$data)
     }
   })
 }

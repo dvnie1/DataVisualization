@@ -53,13 +53,14 @@ render_heatmap <- function(df, x_axis_name){
   ggplot(df, aes(x = x_axis, y = y_axis, fill = value_category, text = tooltip)) +
     # Heat-Map directive(white border lines)
     geom_tile(color = "white", lwd = 0.25, linetype = 1) +
+    geom_point(aes(x = x_axis, y = y_axis), alpha = 0) + 
     # Color Palette - BluGrn from color-palette-finder
     scale_fill_manual(values = c(
       "Minimum" = "#C4E6C3FF", 
       "Low" = "#96D2A4FF", 
       "Medium" = "#6DBC90FF", 
       "High" = "#4DA284FF", 
-      "Very High" = "#36877AFF")
+      "Very High" = "#36877AFF"),
     ) +
     # Adds some spacing
     theme_minimal() +

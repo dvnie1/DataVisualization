@@ -187,7 +187,7 @@ function(input, output, session) {
       g_plot <- ggplotly(week_heatmap, tooltip = "text")
     }else{
       # Tooltip message
-      df_hour$tooltip <- paste("Attack Count:", df_hour$incidents)
+      df_hour$tooltip <- paste("Timeframe:", sprintf("%02d:00", df_hour$x_axis)," - ", sprintf("%02d:59", df_hour$x_axis), "<br>Attack Count:", df_hour$incidents)
       
       hour_heatmap <- render_heatmap(df=df_hour, x_axis_name="Hour")
       g_plot <- ggplotly(hour_heatmap, tooltip = "text")

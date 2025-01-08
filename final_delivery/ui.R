@@ -44,12 +44,14 @@ page_fluid(
     ),
     nav_panel(
       title = "Visualization 2",
-      layout_sidebar(
-        title = p("Are there specific days of the week or hours where trends occur (attack type, targeted system)?", class="lead"),
+      page_sidebar(
+        title = p("Are there specific specific days of weeks or hours where trends occurs (attack type, targeted system)?", class="lead"),
         sidebar = sidebar(
-          "Shiny is available on CRAN, so you can install it in the usual way from your R console:",
-          code('install.packages("shiny")'),
+          render_sidebar_second(),
+          width = 400
         ),
+        fillable=TRUE, 
+        fill=TRUE,
         render_second()
       )
     ),

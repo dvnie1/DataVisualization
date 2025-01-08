@@ -1,5 +1,6 @@
 # Visualization 1 - Is there any geographical pattern based on attack type, protocol or targeted system?
 library(leaflet)
+library(shinycssloaders)
 
 source("global.R")
 
@@ -30,6 +31,6 @@ render_sidebar_first <- function(){
 
 render_first <- function(){
   card(
-    leafletOutput("mymap")
+    withSpinner(leafletOutput("mymap", height = "100vh"), proxy.height = "200px")
   )
 }

@@ -16,8 +16,6 @@ countries_list <- read_csv("data/countries_codes_and_coordinates.csv", name_repa
 
 # We remap column names to snake_case to avoid dealing with spaces
 data <- read_csv("data/cyberattacks_detection.csv", name_repair = as_function(to_snake_case))
-valid_attacks <- merge(data, countries_list, by.x = "destination_country", by.y = "country") %>% select(source_country, destination_country, attack_type, protocol, affected_system, alpha_3)
-
 
 link_shiny <- tags$a(shiny::icon("github"),
                      "Shiny",
@@ -44,6 +42,38 @@ calculate_geojson_data <- function(data){
   
   # Add attack_count column to geo information
   countries_geo %>% left_join(aggregated_data, by = c("ADM0_A3" = "alpha_3"))
+}
+
+firstUp <- function(x) {
+  paste(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)), sep="")
+}
+
+render_heatmap <- function(df, x_axis_name){
+  # Plot heatmap
+  ggplot(df, aes(x = x_axis, y = y_axis, fill = value_category, text = tooltip)) +
+    # Heat-Map directive(white border lines)
+    geom_tile(color = "white", lwd = 0.25, linetype = 1) +
+    # Color Palette - BluGrn from color-palette-finder
+    scale_fill_manual(values = c(
+      "Minimum" = "#C4E6C3FF", 
+      "Low" = "#96D2A4FF", 
+      "Medium" = "#6DBC90FF", 
+      "High" = "#4DA284FF", 
+      "Very High" = "#36877AFF")
+    ) +
+    # Adds some spacing
+    theme_minimal() +
+    # Titles and labels
+    labs(
+      x = x_axis_name,
+      y = "Day of Week",
+      fill = "Activity Level\n"
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      panel.grid = element_blank(),
+      panel.background = element_blank()
+    )
 }
 
 determine_filter_expr <- function(selector, key_name, session, oper_tracker){

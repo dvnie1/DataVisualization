@@ -10,15 +10,11 @@
 library(shiny)
 library(leaflet)
 library(dplyr)
+library(ggplot2)
+library(lubridate)
 library(purrr)
 
 source("global.R")
-
-# Render initial map with NO filters
-initial_attacked_countries <- calculate_geojson_data(valid_attacks)
-
-# Create a color palette based on attack count (yellow to redish colors. Gray is used as default)
-palette <- colorBin("YlOrRd", domain = initial_attacked_countries$attack_count, bins = 5, na.color = "gray")
 
 # Create the Leaflet map
 basemap <- leaflet(options = leafletOptions(minZoom = 2)) %>%
@@ -50,6 +46,8 @@ function(input, output, session) {
   #################################################################
   ##                    Visualization 1                          ##
   #################################################################
+  
+  valid_attacks <- merge(data, countries_list, by.x = "destination_country", by.y = "country") %>% select(source_country, destination_country, attack_type, protocol, affected_system, alpha_3)
   
   # Reactive flag to control observer activation
   observer_active <- reactiveValues(active = FALSE)
@@ -136,4 +134,77 @@ function(input, output, session) {
   ##                    Visualization 2                          ##
   #################################################################
   
+  attacks_with_timestamp <- data %>% filter(!is.na(timestamp)) %>% select(destination_country, source_country, timestamp, attack_type, affected_system)
+  attacks_with_timestamp$timestamp <- as.POSIXlt(attacks_with_timestamp$timestamp, format="%m/%d/%Y %H:%M")
+  
+  observe({
+    min_date <- as.Date(min(attacks_with_timestamp$timestamp))
+    max_date <- as.Date(max(attacks_with_timestamp$timestamp))
+    
+    updateDateRangeInput(session, "date_selector",
+                    start = min_date,
+                    end = max_date,
+                    min   = min_date,
+                    max   = max_date)
+  })
+  
+  
+  # Filter data based in input
+  filtered_attacks <- reactive(attacks_with_timestamp %>% filter(timestamp > as.POSIXlt(input$date_selector[[1]]) & timestamp < as.POSIXlt(input$date_selector[[2]])))
+  
+  output$heatmap <- renderPlotly({
+    df <- filtered_attacks()
+    
+    # Process data for heatmap
+    df_week <- df %>%
+      mutate(
+        x_axis = week(timestamp),
+        y_axis = wday(timestamp, label = TRUE, week_start = 1),
+        date = as.Date(timestamp)
+      ) %>% 
+      count(x_axis, y_axis, date, name="incidents") %>% 
+      mutate(
+        value_category = cut(incidents, breaks = 5, labels = c("Minimum", "Low", "Medium", "High", "Very High"))
+      )
+    
+    df_week$tooltip <- paste("Date:", df$date, "<br>Attack Count:", df$incidents)
+    
+    # Process data for heatmap
+    df_hour <- df %>%
+      mutate(
+        x_axis = hour(timestamp),
+        y_axis = wday(timestamp, label = TRUE, week_start = 1),
+      ) %>% 
+      count(x_axis, y_axis, name="incidents") %>% 
+      mutate(
+        value_category = cut(incidents, breaks = 5, labels = c("Minimum", "Low", "Medium", "High", "Very High"))
+      )
+    
+    g_plot <- NULL
+    
+    if(input$select_type == "Week"){
+      # Tooltip message
+      df$tooltip <- paste("Date:", df$date, "<br>Attack Count:", df$incidents)
+      
+      week_heatmap <- render_heatmap(df=df_week, x_axis_name="Week")
+      g_plot <- ggplotly(week_heatmap, tooltip = "text")
+    }else{
+      # Tooltip message
+      df$tooltip <- paste("Attack Count:", df$incidents)
+      
+      hour_heatmap <- render_heatmap(df=df_hour, x_axis_name="Hour")
+      g_plot <- ggplotly(hour_heatmap, tooltip = "text")
+    }
+    
+    g_plot %>%
+      layout(
+        hoverlabel = list(
+          bgcolor = "white",   # Tooltip background color
+          font = list(
+            color = "black"    # Tooltip text color
+          )
+        )
+      )
+    
+  })
 }

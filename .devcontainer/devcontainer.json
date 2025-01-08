@@ -13,7 +13,6 @@
         },
         "ghcr.io/rocker-org/devcontainer-features/r-history:0": {}
     },
-    "workspaceMount": "source=${localWorkspaceFolder}/final_delivery,target=/workspace,type=bind,consistency=cached", 
     "workspaceFolder": "/workspace",
     "forwardPorts": [
         8787

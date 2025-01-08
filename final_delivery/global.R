@@ -49,11 +49,15 @@ firstUp <- function(x) {
 }
 
 render_heatmap <- function(df, x_axis_name){
+  
+  frames_shade <- data.frame(x_axis = c(20), y_axis = c("Sat"), tooltip = c("Hola a todos"), value_category=c("High"))
+  
   # Plot heatmap
   ggplot(df, aes(x = x_axis, y = y_axis, fill = value_category, text = tooltip)) +
     # Heat-Map directive(white border lines)
     geom_tile(color = "white", lwd = 0.25, linetype = 1) +
     geom_point(aes(x = x_axis, y = y_axis), alpha = 0) + 
+    geom_tile(data=frames_shade, color = "black", linetype = 1, lwd = 1,) +
     # Color Palette - BluGrn from color-palette-finder
     scale_fill_manual(values = c(
       "Minimum" = "#C4E6C3FF", 

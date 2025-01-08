@@ -217,7 +217,15 @@ function(input, output, session) {
   output$selected_box <- renderPrint({
     click_data  <- event_data("plotly_click")
     if (!is.null(click_data)) {
-      paste(click_data, selected_set$data)
+      if("date" %in% colnames(selected_set$data)){
+        cell_position <- (if(click_data$x == 1) 0 else ((click_data$x-1) * 7)) + click_data$y
+        
+        by_date <- selected_set$data %>% arrange(date)
+        by_date[cell_position, ]
+      }else{
+        cell_position <- (click_data$x * 7) + click_data$y
+        selected_set$data[cell_position, ]
+      }
     } else {
       colnames(selected_set$data)
     }

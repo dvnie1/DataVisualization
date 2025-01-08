@@ -148,7 +148,6 @@ function(input, output, session) {
                     max   = max_date)
   })
   
-  
   # Filter data based in input
   filtered_attacks <- reactive(attacks_with_timestamp %>% filter(timestamp > as.POSIXlt(input$date_selector[[1]]) & timestamp < as.POSIXlt(input$date_selector[[2]])))
   
@@ -167,8 +166,6 @@ function(input, output, session) {
         value_category = cut(incidents, breaks = 5, labels = c("Minimum", "Low", "Medium", "High", "Very High"))
       )
     
-    df_week$tooltip <- paste("Date:", df$date, "<br>Attack Count:", df$incidents)
-    
     # Process data for heatmap
     df_hour <- df %>%
       mutate(
@@ -184,13 +181,13 @@ function(input, output, session) {
     
     if(input$select_type == "Week"){
       # Tooltip message
-      df$tooltip <- paste("Date:", df$date, "<br>Attack Count:", df$incidents)
+      df_week$tooltip <- paste("Date:", df_week$date, "<br>Attack Count:", df_week$incidents)
       
       week_heatmap <- render_heatmap(df=df_week, x_axis_name="Week")
       g_plot <- ggplotly(week_heatmap, tooltip = "text")
     }else{
       # Tooltip message
-      df$tooltip <- paste("Attack Count:", df$incidents)
+      df_hour$tooltip <- paste("Attack Count:", df_hour$incidents)
       
       hour_heatmap <- render_heatmap(df=df_hour, x_axis_name="Hour")
       g_plot <- ggplotly(hour_heatmap, tooltip = "text")

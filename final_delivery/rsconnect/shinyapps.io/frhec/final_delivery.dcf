@@ -1,0 +1,12 @@
+name: final_delivery
+title: final_delivery
+username: frhec
+account: frhec
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13681193
+bundleId:
+url: https://frhec.shinyapps.io/final_delivery/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

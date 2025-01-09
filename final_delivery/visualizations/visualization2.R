@@ -7,6 +7,12 @@ render_sidebar_second <- function(){
   card(
     card_header(helpText("Available Filters")),
     card_body(
+      helpText(
+        tagList(
+          "To reset the view click on the: ",
+          icon("house")
+        )
+      ),
       dateRangeInput("date_selector", "Date Range:"),
       verbatimTextOutput("selected_box")
     )

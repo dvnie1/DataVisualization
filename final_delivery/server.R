@@ -150,11 +150,17 @@ function(input, output, session) {
   
   # Filter data based in input
   filtered_attacks <- reactive(attacks_with_timestamp %>% filter(timestamp > as.POSIXlt(input$date_selector[[1]]) & timestamp < as.POSIXlt(input$date_selector[[2]])))
+  # Keeps track of which dataset is used
   selected_set <- reactiveValues(data = NULL)
-  
+
   output$attack_type_count <- renderText({
     detection_percentage <- filtered_attacks() %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
-    detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage)
+    detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
+  })
+  
+  output$frequent_attack_count <- renderText({
+    attack_count <- filtered_attacks() %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
+    attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type) %>% paste(collapse = ",")
   })
   
   output$heatmap <- renderPlotly({
@@ -202,6 +208,8 @@ function(input, output, session) {
     }
     
     g_plot %>%
+      event_register("plotly_click") %>%
+      event_register("plotly_selected")  %>%
       layout(
         hoverlabel = list(
           bgcolor = "white",   # Tooltip background color
@@ -213,21 +221,75 @@ function(input, output, session) {
     
   })
   
-  # Capture the click event and extract the selected box
-  output$selected_box <- renderPrint({
+  # When clicked on the house reset removes the selected
+  observeEvent(event_data("plotly_relayout"), {
+    d <- event_data("plotly_relayout")
+    if (!is.null(d) && !is.null(d$yaxis.showspikes) && !d$yaxis.showspikes) {
+      plotlyProxy("heatmap", session) %>%
+        plotlyProxyInvoke("relayout", list(
+          shapes = list()
+        ))
+      
+      output$attack_type_count <- renderText({
+        detection_percentage <- filtered_attacks() %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
+        detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
+      })
+      
+      output$frequent_attack_count <- renderText({
+        attack_count <- filtered_attacks() %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
+        attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type) %>% paste(collapse = ",")
+      })
+    }
+  })
+  
+  observeEvent(event_data("plotly_click"), {
     click_data  <- event_data("plotly_click")
     if (!is.null(click_data)) {
+      selected_tile <- NULL
       if("date" %in% colnames(selected_set$data)){
         cell_position <- (if(click_data$x == 1) 0 else ((click_data$x-1) * 7)) + click_data$y
         
         by_date <- selected_set$data %>% arrange(date)
-        by_date[cell_position, ]
+        selected_tile <- by_date[cell_position, ] 
       }else{
         cell_position <- (click_data$x * 7) + click_data$y
-        selected_set$data[cell_position, ]
+        selected_tile <- selected_set$data[cell_position, ]
       }
-    } else {
-      colnames(selected_set$data)
+      
+      selected_tile <- filtered_attacks() %>%
+        mutate(
+          week = week(timestamp),
+          day = wday(timestamp, label = TRUE, week_start = 1),
+          hour = hour(timestamp)
+        ) %>% 
+        filter(
+          day == selected_tile$y_axis & 
+          (week == selected_tile$x_axis | hour == selected_tile$x_axis)
+        )
+      
+      output$attack_type_count <- renderText({
+        detection_percentage <- selected_tile %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
+        detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
+      })
+      
+      output$frequent_attack_count <- renderText({
+        attack_count <- selected_tile %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
+        attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type) %>% paste(collapse = ",")
+      })
+      
+      plotlyProxy("heatmap", session) %>%
+        plotlyProxyInvoke("relayout", list(
+          shapes = list(
+            list(
+              type = "rect",
+              x0 = click_data$x - 0.5,
+              x1 = click_data$x + 0.5,
+              y0 = click_data$y - 0.5,
+              y1 = click_data$y + 0.5,
+              line = list(color = "red", width = 3)
+            )
+          )
+        ))
     }
   })
 }

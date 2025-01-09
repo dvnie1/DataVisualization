@@ -31,6 +31,7 @@ page_fluid(
   navset_tab(
     nav_panel(
       title = "Visualization 1",
+      value = "vis1",
       page_sidebar(
         title = p("Is there any geographical pattern based on attack type, protocol or targeted system?", class="lead"),
         sidebar = sidebar(
@@ -44,6 +45,7 @@ page_fluid(
     ),
     nav_panel(
       title = "Visualization 2",
+      value = "vis2",
       page_sidebar(
         title = p("Are there specific specific days of weeks or hours where trends occurs (attack type, targeted system)?", class="lead"),
         sidebar = sidebar(
@@ -57,6 +59,7 @@ page_fluid(
     ),
     nav_panel(
       title = "Visualization 3",
+      value = "vis3",
       layout_sidebar(
         title = p("Does the payload size play a critical role in the distribution of confidence levels when classifying attacks based on ML Models or Affected systems?", class="lead"),
         sidebar = sidebar(
@@ -67,7 +70,8 @@ page_fluid(
       )
     ),
     nav_spacer(),
-    nav_menu(title = "Links", nav_item(link_shiny), nav_item(link_posit))
+    nav_menu(title = "Links", nav_item(link_shiny), nav_item(link_posit)),
+    id = "tabs"
   ),
   theme = theme
 )

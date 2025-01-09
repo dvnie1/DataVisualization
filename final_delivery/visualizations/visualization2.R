@@ -14,7 +14,6 @@ render_sidebar_second <- function(){
         )
       ),
       dateRangeInput("date_selector", "Date Range:"),
-      verbatimTextOutput("selected_box")
     )
   )
 }

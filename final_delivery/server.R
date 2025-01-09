@@ -40,256 +40,302 @@ render_options <- I(
     }'
 )
 
+
 # Define server logic required to draw a histogram
 function(input, output, session) {
   
-  #################################################################
-  ##                    Visualization 1                          ##
-  #################################################################
-  
-  valid_attacks <- merge(data, countries_list, by.x = "destination_country", by.y = "country") %>% select(source_country, destination_country, attack_type, protocol, affected_system, alpha_3)
-  
-  # Reactive flag to control observer activation
-  observer_active <- reactiveValues(active = FALSE)
-
-  applied_filters <- reactiveValues(data = list(
-    'attackType' = NULL,
-    'protocol' = NULL,
-    'affectedSystems' = NULL
-  ))
-  
-  output$mymap <- renderLeaflet({ 
-    basemap
-  })
-  
-  all_attacks <- reactiveVal(TRUE)
-  all_protocol <- reactiveVal(TRUE)
-  all_targets <- reactiveVal(TRUE)
-  
-  # Only calls it once since valid_attacks is only processed once
-  updateSelectizeInput(session, 'attack_type', choices = c("All", unique(valid_attacks$attack_type)), selected = "All", server = TRUE, options = list(render = render_options))
-  updateSelectizeInput(session, 'protocol', choices = c("All", unique(valid_attacks$protocol)), selected = "All", server = TRUE, options = list(render = render_options))
-  updateSelectizeInput(session, 'affected_system', choices = c("All", unique(valid_attacks$affected_system)), selected = "All", server = TRUE, options = list(render = render_options))
-  
-  observeEvent(input$attack_type, {
-    computed <- determine_filter_expr(input$attack_type, "attack_type", session, all_attacks)
+  observeEvent(input$tabs, {
     
-    if(!identical(computed, applied_filters$data$attackType)){
-      applied_filters$data$attackType <- computed
-    }
-  })
-  
-  observeEvent(input$protocol, {
-    computed <- determine_filter_expr(input$protocol, "protocol", session, all_protocol)
-    
-    if(!identical(computed, applied_filters$data$protocol)){
-      applied_filters$data$protocol <- computed
-    }
-  })
-  
-  observeEvent(input$affected_system, {
-    computed <- determine_filter_expr(input$affected_system, "affected_system", session, all_targets)
-    
-    if(!identical(computed, applied_filters$data$affectedSystem)){
-      applied_filters$data$affectedSystems <- computed
-    }
-  })
-  
-  # Update map with filtered GeoJSON
-  observe({
-    
-    active_filters <- Filter(Negate(is.null), applied_filters$data)
-    
-    filtered_geo_json <- calculate_geojson_data(reduce(
-      .x = active_filters, 
-      .f = function(data, filter_func){
-        filter_func(data)
-      },
-      .init = valid_attacks
-    ))
-    
-    # Create a color palette based on attack count (yellow to redish colors. Gray is used as default)
-    palette <- colorBin("YlOrRd", domain = filtered_geo_json$attack_count, bins = 5, na.color = "gray")
-    
-    leafletProxy("mymap", data = filtered_geo_json) %>%
-      clearShapes() %>%  # Clear existing polygons
-      clearControls() %>%
-      addPolygons(
-        fillColor = ~palette(attack_count),
-        color = "black", # Border color
-        weight = 1, # Border thickness
-        fillOpacity = 0.7, # Transparency
-        popup = ~paste0("<b>Country:</b> ", GEOUNIT, "<br>",
-                        "<b>Attack Count:</b> ", ifelse(is.na(attack_count), "0", attack_count))
-      ) %>%
-      addLegend(
-        pal = palette,
-        values = ~attack_count,
-        title = "Attack Count",
-        position = "bottomright"
-      )
-  })
-  
-  #################################################################
-  ##                    Visualization 2                          ##
-  #################################################################
-  
-  attacks_with_timestamp <- data %>% filter(!is.na(timestamp)) %>% select(destination_country, source_country, timestamp, attack_type, affected_system, detection_label)
-  attacks_with_timestamp$timestamp <- as.POSIXlt(attacks_with_timestamp$timestamp, format="%m/%d/%Y %H:%M")
-  
-  observe({
-    min_date <- as.Date(min(attacks_with_timestamp$timestamp))
-    max_date <- as.Date(max(attacks_with_timestamp$timestamp))
-    
-    updateDateRangeInput(session, "date_selector",
-                    start = min_date,
-                    end = max_date,
-                    min   = min_date,
-                    max   = max_date)
-  })
-  
-  # Filter data based in input
-  filtered_attacks <- reactive(attacks_with_timestamp %>% filter(timestamp > as.POSIXlt(input$date_selector[[1]]) & timestamp < as.POSIXlt(input$date_selector[[2]])))
-  # Keeps track of which dataset is used
-  selected_set <- reactiveValues(data = NULL)
-
-  output$attack_type_count <- renderText({
-    detection_percentage <- filtered_attacks() %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
-    detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
-  })
-  
-  output$frequent_attack_count <- renderText({
-    attack_count <- filtered_attacks() %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
-    attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type) %>% paste(collapse = ",")
-  })
-  
-  output$heatmap <- renderPlotly({
-    df <- filtered_attacks()
-    
-    # Process data for heatmap
-    df_week <- df %>%
-      mutate(
-        x_axis = week(timestamp),
-        y_axis = wday(timestamp, label = TRUE, week_start = 1),
-        date = as.Date(timestamp)
-      ) %>% 
-      count(x_axis, y_axis, date, name="incidents") %>% 
-      mutate(
-        value_category = cut(incidents, breaks = 5, labels = c("Minimum", "Low", "Medium", "High", "Very High"))
-      )
-    
-    # Process data for heatmap
-    df_hour <- df %>%
-      mutate(
-        x_axis = hour(timestamp),
-        y_axis = wday(timestamp, label = TRUE, week_start = 1),
-      ) %>% 
-      count(x_axis, y_axis, name="incidents") %>% 
-      mutate(
-        value_category = cut(incidents, breaks = 5, labels = c("Minimum", "Low", "Medium", "High", "Very High"))
-      )
-    
-    g_plot <- NULL
-    
-    if(input$select_type == "Week"){
-      # Tooltip message
-      df_week$tooltip <- paste("Date:", df_week$date, "<br>Attack Count:", df_week$incidents)
+    if (input$tabs == "vis1") {
       
-      week_heatmap <- render_heatmap(df=df_week, x_axis_name="Week")
-      g_plot <- ggplotly(week_heatmap, tooltip = "text")
-      selected_set$data <- df_week
-    }else{
-      # Tooltip message
-      df_hour$tooltip <- paste("Timeframe:", sprintf("%02d:00", df_hour$x_axis)," - ", sprintf("%02d:59", df_hour$x_axis), "<br>Attack Count:", df_hour$incidents)
+      #################################################################
+      ##                    Visualization 1                          ##
+      #################################################################
       
-      hour_heatmap <- render_heatmap(df=df_hour, x_axis_name="Hour")
-      g_plot <- ggplotly(hour_heatmap, tooltip = "text")
-      selected_set$data <- df_hour
-    }
-    
-    g_plot %>%
-      event_register("plotly_click") %>%
-      event_register("plotly_selected")  %>%
-      layout(
-        hoverlabel = list(
-          bgcolor = "white",   # Tooltip background color
-          font = list(
-            color = "black"    # Tooltip text color
-          )
-        )
-      )
-    
-  })
-  
-  # When clicked on the house reset removes the selected
-  observeEvent(event_data("plotly_relayout"), {
-    d <- event_data("plotly_relayout")
-    if (!is.null(d) && !is.null(d$yaxis.showspikes) && !d$yaxis.showspikes) {
-      plotlyProxy("heatmap", session) %>%
-        plotlyProxyInvoke("relayout", list(
-          shapes = list()
-        ))
+      valid_attacks <- merge(data, countries_list, by.x = "destination_country", by.y = "country") %>% select(source_country, destination_country, attack_type, protocol, affected_system, alpha_3)
       
-      output$attack_type_count <- renderText({
-        detection_percentage <- filtered_attacks() %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
-        detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
+      # Reactive flag to control observer activation
+      observer_active <- reactiveValues(active = FALSE)
+      
+      applied_filters <- reactiveValues(data = list(
+        'attackType' = NULL,
+        'protocol' = NULL,
+        'affectedSystems' = NULL
+      ))
+      
+      output$mymap <- renderLeaflet({ 
+        basemap
       })
       
-      output$frequent_attack_count <- renderText({
-        attack_count <- filtered_attacks() %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
-        attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type) %>% paste(collapse = ",")
-      })
-    }
-  })
-  
-  observeEvent(event_data("plotly_click"), {
-    click_data  <- event_data("plotly_click")
-    if (!is.null(click_data)) {
-      selected_tile <- NULL
-      if("date" %in% colnames(selected_set$data)){
-        cell_position <- (if(click_data$x == 1) 0 else ((click_data$x-1) * 7)) + click_data$y
+      all_attacks <- reactiveVal(TRUE)
+      all_protocol <- reactiveVal(TRUE)
+      all_targets <- reactiveVal(TRUE)
+      
+      # Only calls it once since valid_attacks is only processed once
+      updateSelectizeInput(session, 'attack_type', choices = c("All", unique(valid_attacks$attack_type)), selected = "All", server = TRUE, options = list(render = render_options))
+      updateSelectizeInput(session, 'protocol', choices = c("All", unique(valid_attacks$protocol)), selected = "All", server = TRUE, options = list(render = render_options))
+      updateSelectizeInput(session, 'affected_system', choices = c("All", unique(valid_attacks$affected_system)), selected = "All", server = TRUE, options = list(render = render_options))
+      
+      observeEvent(input$attack_type, {
+        computed <- determine_filter_expr(input$attack_type, "attack_type", session, all_attacks)
         
-        by_date <- selected_set$data %>% arrange(date)
-        selected_tile <- by_date[cell_position, ] 
-      }else{
-        cell_position <- (click_data$x * 7) + click_data$y
-        selected_tile <- selected_set$data[cell_position, ]
-      }
+        if(!identical(computed, applied_filters$data$attackType)){
+          applied_filters$data$attackType <- computed
+        }
+      })
       
-      selected_tile <- filtered_attacks() %>%
-        mutate(
-          week = week(timestamp),
-          day = wday(timestamp, label = TRUE, week_start = 1),
-          hour = hour(timestamp)
-        ) %>% 
-        filter(
-          day == selected_tile$y_axis & 
-          (week == selected_tile$x_axis | hour == selected_tile$x_axis)
-        )
+      observeEvent(input$protocol, {
+        computed <- determine_filter_expr(input$protocol, "protocol", session, all_protocol)
+        
+        if(!identical(computed, applied_filters$data$protocol)){
+          applied_filters$data$protocol <- computed
+        }
+      })
+      
+      observeEvent(input$affected_system, {
+        computed <- determine_filter_expr(input$affected_system, "affected_system", session, all_targets)
+        
+        if(!identical(computed, applied_filters$data$affectedSystem)){
+          applied_filters$data$affectedSystems <- computed
+        }
+      })
+      
+      # Update map with filtered GeoJSON
+      observe({
+        
+        active_filters <- Filter(Negate(is.null), applied_filters$data)
+        
+        filtered_geo_json <- calculate_geojson_data(reduce(
+          .x = active_filters, 
+          .f = function(data, filter_func){
+            filter_func(data)
+          },
+          .init = valid_attacks
+        ))
+        
+        # Create a color palette based on attack count (yellow to redish colors. Gray is used as default)
+        palette <- colorBin("YlOrRd", domain = filtered_geo_json$attack_count, bins = 5, na.color = "gray")
+        
+        leafletProxy("mymap", data = filtered_geo_json) %>%
+          clearShapes() %>%  # Clear existing polygons
+          clearControls() %>%
+          addPolygons(
+            fillColor = ~palette(attack_count),
+            color = "black", # Border color
+            weight = 1, # Border thickness
+            fillOpacity = 0.7, # Transparency
+            popup = ~paste0("<b>Country:</b> ", GEOUNIT, "<br>",
+                            "<b>Attack Count:</b> ", ifelse(is.na(attack_count), "0", attack_count))
+          ) %>%
+          addLegend(
+            pal = palette,
+            values = ~attack_count,
+            title = "Attack Count",
+            position = "bottomright"
+          )
+      })
+    } else if (input$tabs == "vis2") {
+      
+      #################################################################
+      ##                    Visualization 2                          ##
+      #################################################################
+      
+      attacks_with_timestamp <- data %>% filter(!is.na(timestamp)) %>% select(destination_country, source_country, timestamp, attack_type, affected_system, detection_label)
+      attacks_with_timestamp$timestamp <- as.POSIXlt(attacks_with_timestamp$timestamp, format="%m/%d/%Y %H:%M")
+      
+      # Filter data based in input
+      filtered_attacks <- reactive(attacks_with_timestamp %>% filter(timestamp > as.POSIXlt(input$date_selector[[1]]) & timestamp < as.POSIXlt(input$date_selector[[2]])))
+      # Keeps track of which dataset is used
+      selected_set <- reactiveValues(data = NULL)
+      
+      observe({
+        min_date <- as.Date(min(attacks_with_timestamp$timestamp))
+        max_date <- as.Date(max(attacks_with_timestamp$timestamp))
+        
+        updateDateRangeInput(session, "date_selector",
+                             start = min_date,
+                             end = max_date,
+                             min   = min_date,
+                             max   = max_date)
+      })
       
       output$attack_type_count <- renderText({
-        detection_percentage <- selected_tile %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
-        detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
+        df <- filtered_attacks()
+        if(nrow(df) != 0){
+          detection_percentage <- df %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
+          detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
+        }
+        NULL
       })
       
       output$frequent_attack_count <- renderText({
-        attack_count <- selected_tile %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
-        attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type) %>% paste(collapse = ",")
+        df <- filtered_attacks()
+        if(nrow(df) != 0){
+          attack_count <- filtered_attacks() %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
+          attack_count <- attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type)
+          
+          if (length(attack_count) > 1) {
+            paste0(attack_count[1], " + ", length(attack_count[-1]), " more")
+          } else {
+            attack_count
+          }
+        }
+        NULL
       })
       
-      plotlyProxy("heatmap", session) %>%
-        plotlyProxyInvoke("relayout", list(
-          shapes = list(
-            list(
-              type = "rect",
-              x0 = click_data$x - 0.5,
-              x1 = click_data$x + 0.5,
-              y0 = click_data$y - 0.5,
-              y1 = click_data$y + 0.5,
-              line = list(color = "red", width = 3)
+      output$heatmap <- renderPlotly({
+        df <- filtered_attacks()
+        
+        # Race condition, initializes before data load
+        if(nrow(df) != 0){
+          # Process data for heatmap
+          df_week <- df %>%
+            mutate(
+              x_axis = week(timestamp),
+              y_axis = wday(timestamp, label = TRUE, week_start = 1),
+              date = as.Date(timestamp)
+            ) %>% 
+            count(x_axis, y_axis, date, name="incidents") %>% 
+            mutate(
+              value_category = cut(incidents, breaks = 5, labels = c("Minimum", "Low", "Medium", "High", "Very High"))
             )
-          )
-        ))
+          
+          # Process data for heatmap
+          df_hour <- df %>%
+            mutate(
+              x_axis = hour(timestamp),
+              y_axis = wday(timestamp, label = TRUE, week_start = 1),
+            ) %>% 
+            count(x_axis, y_axis, name="incidents") %>% 
+            mutate(
+              value_category = cut(incidents, breaks = 5, labels = c("Minimum", "Low", "Medium", "High", "Very High"))
+            )
+          
+          g_plot <- NULL
+          
+          if(input$select_type == "Week"){
+            # Tooltip message
+            df_week$tooltip <- paste("Date:", df_week$date, "<br>Attack Count:", df_week$incidents)
+            
+            week_heatmap <- render_heatmap(df=df_week, x_axis_name="Week")
+            g_plot <- ggplotly(week_heatmap, tooltip = "text")
+            selected_set$data <- df_week
+          }else{
+            # Tooltip message
+            df_hour$tooltip <- paste("Timeframe:", sprintf("%02d:00", df_hour$x_axis)," - ", sprintf("%02d:59", df_hour$x_axis), "<br>Attack Count:", df_hour$incidents)
+            
+            hour_heatmap <- render_heatmap(df=df_hour, x_axis_name="Hour")
+            g_plot <- ggplotly(hour_heatmap, tooltip = "text")
+            selected_set$data <- df_hour
+          }
+          
+          g_plot %>%
+            event_register("plotly_click") %>%
+            event_register("plotly_selected")  %>%
+            layout(
+              hoverlabel = list(
+                bgcolor = "white",   # Tooltip background color
+                font = list(
+                  color = "black"    # Tooltip text color
+                )
+              )
+            )
+        }
+        
+      })
+      
+      # When clicked on the house reset removes the selected
+      observeEvent(event_data("plotly_relayout"), {
+        d <- event_data("plotly_relayout")
+        if (!is.null(d) && !is.null(d$yaxis.showspikes) && !d$yaxis.showspikes) {
+          plotlyProxy("heatmap", session) %>%
+            plotlyProxyInvoke("relayout", list(
+              shapes = list()
+            ))
+          
+          output$attack_type_count <- renderText({
+            detection_percentage <- filtered_attacks() %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
+            detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
+          })
+          
+          output$frequent_attack_count <- renderText({
+            attack_count <- filtered_attacks() %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
+            attack_count <- attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type)
+            
+            if (length(attack_count) > 1) {
+              paste0(attack_count[1], " + ", length(attack_count[-1]), " more")
+            } else {
+              attack_count
+            }
+          })
+          
+          min_date <- as.Date(min(attacks_with_timestamp$timestamp))
+          max_date <- as.Date(max(attacks_with_timestamp$timestamp))
+          
+          updateDateRangeInput(session, "date_selector",
+                               start = min_date,
+                               end = max_date,
+                               min   = min_date,
+                               max   = max_date)
+        }
+      })
+      
+      observeEvent(event_data("plotly_click"), {
+        click_data  <- event_data("plotly_click")
+        if (!is.null(click_data)) {
+          selected_tile <- NULL
+          if("date" %in% colnames(selected_set$data)){
+            cell_position <- (if(click_data$x == 1) 0 else ((click_data$x-1) * 7)) + click_data$y
+            
+            by_date <- selected_set$data %>% arrange(date)
+            selected_tile <- by_date[cell_position, ] 
+          }else{
+            cell_position <- (click_data$x * 7) + click_data$y
+            selected_tile <- selected_set$data[cell_position, ]
+          }
+          
+          selected_tile <- filtered_attacks() %>%
+            mutate(
+              week = week(timestamp),
+              day = wday(timestamp, label = TRUE, week_start = 1),
+              hour = hour(timestamp)
+            ) %>% 
+            filter(
+              day == selected_tile$y_axis & 
+                (week == selected_tile$x_axis | hour == selected_tile$x_axis)
+            )
+          
+          output$attack_type_count <- renderText({
+            detection_percentage <- selected_tile %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
+            detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
+          })
+          
+          output$frequent_attack_count <- renderText({
+            attack_count <- selected_tile %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
+            attack_count <- attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type)
+            
+            if (length(attack_count) > 1) {
+              paste0(attack_count[1], " + ", length(attack_count[-1]), " more")
+            } else {
+              attack_count
+            }
+          })
+          
+          plotlyProxy("heatmap", session) %>%
+            plotlyProxyInvoke("relayout", list(
+              shapes = list(
+                list(
+                  type = "rect",
+                  x0 = click_data$x - 0.5,
+                  x1 = click_data$x + 0.5,
+                  y0 = click_data$y - 0.5,
+                  y1 = click_data$y + 0.5,
+                  line = list(color = "red", width = 3)
+                )
+              )
+            ))
+        }
+      })
     }
   })
 }

@@ -4,6 +4,21 @@ library(shinycssloaders)
 
 source("global.R")
 
+render_options <- I(
+  '
+    {
+      option: function(item, escape) {
+          if (item.value === \'All\') {
+            return \'<div class="option"><strong>\'+ escape(item.value) + \' (Select All)</strong></div>\';
+          }
+          return \'<div class="option">\'+ escape(item.value) + \'</div>\';
+      },
+      item: function(item, escape) {
+          return \'<button type="button" class="btn btn-outline-dark" style="font-size: 11px">\' + escape(item.value) + "</button>";
+      }
+    }'
+)
+
 render_sidebar_first <- function(){
   card(
     card_header(helpText("Filter options to analyze different countries")),
@@ -11,19 +26,22 @@ render_sidebar_first <- function(){
       "attack_type",
       label = "Attack Type",
       multiple = TRUE,
-      choices = NULL
+      choices = c("All"),
+      options = list(placeholder = "All (Select All)", render = render_options)
     ),
     selectizeInput(
       "protocol",
       label = "Protocol",
       multiple = TRUE,
-      choices = NULL
+      choices = c("All"),
+      options = list(placeholder = "All (Select All)", render = render_options)
     ),
     selectizeInput(
       "affected_system",
       label = "Affected Systems",
       multiple = TRUE,
-      choices = NULL
+      choices = c("All"),
+      options = list(placeholder = "All (Select All)", render = render_options)
     )),
     min_height = "100vh"
   )

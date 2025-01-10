@@ -20,18 +20,25 @@ render_sidebar_second <- function(){
 
 render_second <- function(){
   card(
+    tags$style(HTML("
+      #attack_type_count, #frequent_attack_count {
+        font-size: 26px; /* Adjust font size */
+      }
+    ")),
     layout_column_wrap(
       card(value_box( 
         title = "% of Attacks Detected", 
-        value = withSpinner(textOutput("attack_type_count"), proxy.height = "30px", size = 0.5),
+        value = withSpinner(textOutput("attack_detection_count"), proxy.height = "30px", size = 0.5),
         showcase = icon("user-secret"), 
-        theme = "bg-gradient-indigo-purple"
+        theme = "bg-gradient-indigo-purple",
+        height = "130px"
       )),
       card(value_box( 
         title = "Most frequent Attack", 
         value = withSpinner(textOutput("frequent_attack_count"), proxy.height = "30px", size = 0.5),
         showcase = icon("bomb"), 
-        theme = "bg-gradient-indigo-purple"
+        theme = "bg-gradient-indigo-purple",
+        height = "150px"
       )), 
     ),
     selectInput( 

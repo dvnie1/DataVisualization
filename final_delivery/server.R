@@ -40,6 +40,29 @@ render_options <- I(
     }'
 )
 
+filter_attacks_window <- function(df, default_value){
+  if(nrow(df) != 0){
+    attack_count <- df %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
+    attack_count <- attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type)
+    
+    if (length(attack_count) > 1) {
+      paste0(attack_count[1], " + ", length(attack_count[-1]), " more")
+    } else {
+      attack_count
+    }
+  }else{
+    default_value
+  }
+}
+
+filter_detection_label <- function(df, default_value){
+  if(nrow(df) != 0){
+    detection_percentage <- df %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
+    return(detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%"))
+  }else{
+    default_value
+  }
+}
 
 # Define server logic required to draw a histogram
 function(input, output, session) {
@@ -67,14 +90,14 @@ function(input, output, session) {
         basemap
       })
       
-      all_attacks <- reactiveVal(TRUE)
-      all_protocol <- reactiveVal(TRUE)
-      all_targets <- reactiveVal(TRUE)
+      all_attacks <- reactiveVal(FALSE)
+      all_protocol <- reactiveVal(FALSE)
+      all_targets <- reactiveVal(FALSE)
       
-      # Only calls it once since valid_attacks is only processed once
-      updateSelectizeInput(session, 'attack_type', choices = c("All", unique(valid_attacks$attack_type)), selected = "All", server = TRUE, options = list(render = render_options))
-      updateSelectizeInput(session, 'protocol', choices = c("All", unique(valid_attacks$protocol)), selected = "All", server = TRUE, options = list(render = render_options))
-      updateSelectizeInput(session, 'affected_system', choices = c("All", unique(valid_attacks$affected_system)), selected = "All", server = TRUE, options = list(render = render_options))
+      # # Only calls it once since valid_attacks is only processed once
+      updateSelectizeInput(session, 'attack_type', choices = c("All", unique(valid_attacks$attack_type)), server = TRUE)
+      updateSelectizeInput(session, 'protocol', choices = c("All", unique(valid_attacks$protocol)), server = TRUE)
+      updateSelectizeInput(session, 'affected_system', choices = c("All", unique(valid_attacks$affected_system)), server = TRUE)
       
       observeEvent(input$attack_type, {
         computed <- determine_filter_expr(input$attack_type, "attack_type", session, all_attacks)
@@ -148,6 +171,9 @@ function(input, output, session) {
       # Keeps track of which dataset is used
       selected_set <- reactiveValues(data = NULL)
       
+      output$attack_detection_count <- renderText(filter_detection_label(filtered_attacks(), input$attack_detection_count))
+      output$frequent_attack_count <- renderText(filter_attacks_window(filtered_attacks(), input$frequent_attack_count))
+      
       observe({
         min_date <- as.Date(min(attacks_with_timestamp$timestamp))
         max_date <- as.Date(max(attacks_with_timestamp$timestamp))
@@ -157,30 +183,6 @@ function(input, output, session) {
                              end = max_date,
                              min   = min_date,
                              max   = max_date)
-      })
-      
-      output$attack_type_count <- renderText({
-        df <- filtered_attacks()
-        if(nrow(df) != 0){
-          detection_percentage <- df %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
-          detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
-        }
-        NULL
-      })
-      
-      output$frequent_attack_count <- renderText({
-        df <- filtered_attacks()
-        if(nrow(df) != 0){
-          attack_count <- filtered_attacks() %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
-          attack_count <- attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type)
-          
-          if (length(attack_count) > 1) {
-            paste0(attack_count[1], " + ", length(attack_count[-1]), " more")
-          } else {
-            attack_count
-          }
-        }
-        NULL
       })
       
       output$heatmap <- renderPlotly({
@@ -238,7 +240,8 @@ function(input, output, session) {
                 font = list(
                   color = "black"    # Tooltip text color
                 )
-              )
+              ),
+              margin = list(t = 40)
             )
         }
         
@@ -253,21 +256,8 @@ function(input, output, session) {
               shapes = list()
             ))
           
-          output$attack_type_count <- renderText({
-            detection_percentage <- filtered_attacks() %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
-            detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
-          })
-          
-          output$frequent_attack_count <- renderText({
-            attack_count <- filtered_attacks() %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
-            attack_count <- attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type)
-            
-            if (length(attack_count) > 1) {
-              paste0(attack_count[1], " + ", length(attack_count[-1]), " more")
-            } else {
-              attack_count
-            }
-          })
+          output$attack_detection_count <- renderText(filter_detection_label(attacks_with_timestamp))
+          output$frequent_attack_count <- renderText(filter_attacks_window(attacks_with_timestamp))
           
           min_date <- as.Date(min(attacks_with_timestamp$timestamp))
           max_date <- as.Date(max(attacks_with_timestamp$timestamp))
@@ -282,7 +272,7 @@ function(input, output, session) {
       
       observeEvent(event_data("plotly_click"), {
         click_data  <- event_data("plotly_click")
-        if (!is.null(click_data)) {
+        if (!is.null(click_data) && !is.null(click_data$x) && !is.null(click_data$x)) {
           selected_tile <- NULL
           if("date" %in% colnames(selected_set$data)){
             cell_position <- (if(click_data$x == 1) 0 else ((click_data$x-1) * 7)) + click_data$y
@@ -305,21 +295,8 @@ function(input, output, session) {
                 (week == selected_tile$x_axis | hour == selected_tile$x_axis)
             )
           
-          output$attack_type_count <- renderText({
-            detection_percentage <- selected_tile %>% filter(!is.na(detection_label)) %>% count(detection_label) %>% mutate(percentage = (n / sum(n)) * 100)
-            detection_percentage %>% filter(detection_label == "Detected") %>% pull(percentage) %>% round(2) %>% paste0("%")
-          })
-          
-          output$frequent_attack_count <- renderText({
-            attack_count <- selected_tile %>% filter(!is.na(attack_type)) %>% count(attack_type) %>% mutate(percentage = (n / sum(n)) * 100)
-            attack_count <- attack_count %>% filter(percentage == max(percentage)) %>% pull(attack_type)
-            
-            if (length(attack_count) > 1) {
-              paste0(attack_count[1], " + ", length(attack_count[-1]), " more")
-            } else {
-              attack_count
-            }
-          })
+          output$attack_detection_count <- renderText(filter_detection_label(selected_tile))
+          output$frequent_attack_count <- renderText(filter_attacks_window(selected_tile))
           
           plotlyProxy("heatmap", session) %>%
             plotlyProxyInvoke("relayout", list(

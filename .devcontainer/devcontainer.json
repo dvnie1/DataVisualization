@@ -1,0 +1,27 @@
+{
+    "build": {
+		"dockerfile": "Dockerfile"
+	},
+    "features": {
+        "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+            "packages": "jq,libudunits2-dev"
+        },
+        "ghcr.io/rocker-org/devcontainer-features/rstudio-server": {},
+        "ghcr.io/rocker-org/devcontainer-features/r-packages:1": {
+            "packages": "cli,rlang,shiny,maps,mapproj,quantmod,geojsonio,snakecase,leaflet,dplyr,ggplot2,shinycssloaders,plotly,lubridate",
+            "installSystemRequirements": true
+        },
+        "ghcr.io/rocker-org/devcontainer-features/r-history:0": {}
+    },
+    "workspaceFolder": "/workspace",
+    "forwardPorts": [
+        8787
+    ],
+    "postStartCommand": "nohup bash -c 'rserver > /dev/null 2>&1 &'",
+    "portsAttributes": {
+        "8787": {
+            "label": "RStudio IDE",
+            "onAutoForward": "openBrowser"
+        }
+    }
+}

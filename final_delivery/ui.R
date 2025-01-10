@@ -60,12 +60,14 @@ page_fluid(
     nav_panel(
       title = "Visualization 3",
       value = "vis3",
-      layout_sidebar(
+      page_sidebar(
         title = p("Does the payload size play a critical role in the distribution of confidence levels when classifying attacks based on ML Models or Affected systems?", class="lead"),
         sidebar = sidebar(
           render_sidebar_third(),
-          width = 400,
+          width = 400
         ),
+        fillable=TRUE, 
+        fill=TRUE,
         render_third()
       )
     ),

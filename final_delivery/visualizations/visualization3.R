@@ -4,13 +4,16 @@
 render_sidebar_third <- function() {
   card(
     helpText("Payload size and ML model visualization."),
-    selectInput(
-      inputId = "confidence_levels",
-      label = "Confidence Levels",
-      choices = c("All", "High", "Medium", "Low"),
-      selected = "All",
-      multiple = TRUE
-    )
+    sliderInput( 
+      "prediction_confidence", "ML prediction confidence level threshold", 
+      min = 0, max = 100, 
+      value = c(0, 100) 
+    ),
+    tags$head(
+      tags$style(HTML("hr {border-top: 1px solid #000000;}"))
+    ),
+    helpText("Adjust the number of clusters to see changes in the grouping of ML models."),
+    sliderInput("clusters", "Number of Clusters:", min = 2, max = 5, value = 3),
   )
 }
 

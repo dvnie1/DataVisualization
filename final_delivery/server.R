@@ -325,28 +325,14 @@ function(input, output, session) {
       ##                    Visualization 3                          ##
       #################################################################
       
+      ml_attack_prediction <- data %>% filter(!is.na(payload_size_bytes) & !is.na(confidence_score)) %>% select(payload_size_bytes, ml_model, confidence_score, detection_label)
+      
+      
       data_for_vis3 <- reactive({
         # Prepare data for visualization 3
-        filtered_data <- data
+          
         
-        # Calculate confidence levels based on payload_size_kb
-        filtered_data <- filtered_data %>% 
-          mutate(payload_size_kb = payload_size_bytes / 1024) %>%
-          mutate(
-            confidence_level = case_when(
-              payload_size_kb <= quantile(payload_size_kb, 0.33, na.rm = TRUE) ~ "Low",
-              payload_size_kb <= quantile(payload_size_kb, 0.66, na.rm = TRUE) ~ "Medium",
-              TRUE ~ "High"
-            )
-          )
-        
-        # Apply confidence level filtering if not "All"
-        if (!"All" %in% input$confidence_levels) {
-          filtered_data <- filtered_data %>%
-            filter(confidence_level %in% input$confidence_levels)
-        }
-        
-        data <- filtered_data %>% 
+          data <- filtered_data %>% 
           group_by(ml_model, confidence_level) %>% 
           summarise(mean_payload = mean(payload_size_kb, na.rm = TRUE), .groups = "drop")
         

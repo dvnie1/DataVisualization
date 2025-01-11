@@ -13,6 +13,8 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(purrr)
+library(ggplot2)
+library(cluster)
 
 source("global.R")
 
@@ -65,8 +67,12 @@ filter_detection_label <- function(df, default_value){
 }
 
 # Define server logic required to draw a histogram
+
 function(input, output, session) {
-  
+  # ===================
+  # Visualization 1 Logic
+  # ===================
+
   observeEvent(input$tabs, {
     
     if (input$tabs == "vis1") {
@@ -76,9 +82,6 @@ function(input, output, session) {
       #################################################################
       
       valid_attacks <- merge(data, countries_list, by.x = "destination_country", by.y = "country") %>% select(source_country, destination_country, attack_type, protocol, affected_system, alpha_3)
-      
-      # Reactive flag to control observer activation
-      observer_active <- reactiveValues(active = FALSE)
       
       applied_filters <- reactiveValues(data = list(
         'attackType' = NULL,
@@ -90,9 +93,9 @@ function(input, output, session) {
         basemap
       })
       
-      all_attacks <- reactiveVal(FALSE)
-      all_protocol <- reactiveVal(FALSE)
-      all_targets <- reactiveVal(FALSE)
+      all_attacks <- reactiveVal(TRUE)
+      all_protocol <- reactiveVal(TRUE)
+      all_targets <- reactiveVal(TRUE)
       
       # # Only calls it once since valid_attacks is only processed once
       updateSelectizeInput(session, 'attack_type', choices = c("All", unique(valid_attacks$attack_type)), server = TRUE)
@@ -311,6 +314,54 @@ function(input, output, session) {
                 )
               )
             ))
+        }
+      })
+    } else if (input$tabs == "vis3") {
+      
+      #################################################################
+      ##                    Visualization 3                          ##
+      #################################################################
+      
+      ml_attack_prediction <- data %>% 
+        filter(!is.na(payload_size_bytes) & !is.na(confidence_score) & !is.na(ml_model)) %>% 
+        select(payload_size_bytes, ml_model, confidence_score, attack_type, ml_model)
+      
+      data_for_vis3 <- reactive({
+        min <- (input$prediction_confidence[1]/100)
+        max <- (input$prediction_confidence[2]/100)
+        grouped_attacks <- ml_attack_prediction %>% filter(confidence_score >= min & confidence_score < max)
+        
+        if(input$cluster_models){
+          clara_results <- clara(grouped_attacks$confidence_score, k=input$clusters_num)
+          grouped_attacks$cluster <- as.factor(paste("Cluster", clara_results$clustering))
+        }
+        
+        grouped_attacks
+      })
+      
+      output$confidence_interval_cluster <- renderPlotly({
+        df <- data_for_vis3()
+        
+        if(nrow(df) != 0){
+          g_plot <- ggplot(df, aes(x = ml_model, y = payload_size_bytes, fill = ml_model)) + theme_minimal() 
+          
+          if(input$cluster_models){
+            g_plot <- g_plot + facet_wrap(~cluster, ncol = input$clusters) + 
+              theme(
+                axis.text.x = element_text(angle = 90, hjust = 1),  # Rotate x-axis text
+                legend.position = "right"
+              ) 
+          }
+          
+          g_plot <- g_plot + geom_boxplot() +
+            labs(title = "Customized Box Plot",
+                 x = "Group",
+                 y = "Value") +
+            scale_fill_brewer(palette = "Set2")
+          
+          ggplotly(g_plot)
+        }else{
+          NULL 
         }
       })
     }

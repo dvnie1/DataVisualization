@@ -17,14 +17,14 @@ countries_list <- read_csv("data/countries_codes_and_coordinates.csv", name_repa
 # We remap column names to snake_case to avoid dealing with spaces
 data <- read_csv("data/cyberattacks_detection.csv", name_repair = as_function(to_snake_case))
 
-link_shiny <- tags$a(shiny::icon("github"),
-                     "Shiny",
-                     href = "https://github.com/rstudio/shiny",
+link_github <- tags$a(shiny::icon("github"),
+                     "Source Code",
+                     href = "https://github.com/dvnie1/DataVisualization",
                      target = "_blank")
 
-link_posit <- tags$a(shiny::icon("r-project"),
-                     "Posit",
-                     href = "https://posit.co",
+link_kaggle <- tags$a(shiny::icon("kaggle"),
+                     "Kaggle Dataset",
+                     href = "https://www.kaggle.com/datasets/lastman0800/cyberattacks-detection",
                      target = "_blank")
 
 theme <- bs_theme(bootswatch = "sandstone")
@@ -102,6 +102,4 @@ determine_filter_expr <- function(selector, key_name, session, oper_tracker){
     })
     
   }
-  
-  return(NULL)
 }

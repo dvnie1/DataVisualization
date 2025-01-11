@@ -31,7 +31,7 @@ page_fluid(
   navset_tab(
     nav_panel(
       title = "Introduction",
-      value = "vis1",
+      value = "intro",
       fillPage(
         tags$head(
           tags$style(
@@ -52,7 +52,14 @@ page_fluid(
           h4("2. Are there specific specific days of weeks or hours where trends occurs (attack type)?"),
           p("A heatmap is employed to analyze attack frequencies across different time frames, such as hours or days of the week. This insight allows countries to proactively strengthen cybersecurity measures by aligning their policies with the time periods preferred by attackers."),
           h4("3. Does the payload size play a critical role in the distribution of confidence levels when classifying attacks based on ML Models?"),
-          p("To investigate this, a box-and-whisker plot is used to analyze the relationship between payload size and the confidence levels (using clusters) of machine learning model predictions. This visualization highlights which models are preferred against package size as an initial filter. This offers insights into potential counterstrategies.")
+          p("To investigate this, a box-and-whisker plot is used to analyze the relationship between payload size and the confidence levels (using clusters) of machine learning model predictions. This visualization highlights which models are preferred against package size as an initial filter. This offers insights into potential counterstrategies."),
+          br(),
+          h4("Team members:"),
+          tags$ol(
+            tags$li("Daniel Cser"),
+            tags$li("Hector Flores"),
+          )
+          
         )
       )
     ),

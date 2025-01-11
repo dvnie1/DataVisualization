@@ -75,9 +75,6 @@ function(input, output, session) {
 
   observeEvent(input$tabs, {
     
-    # Clean unused variables, free space
-    gc()
-    
     if (input$tabs == "vis1") {
       
       #################################################################
@@ -85,9 +82,6 @@ function(input, output, session) {
       #################################################################
       
       valid_attacks <- merge(data, countries_list, by.x = "destination_country", by.y = "country") %>% select(source_country, destination_country, attack_type, protocol, affected_system, alpha_3)
-      
-      # Reactive flag to control observer activation
-      observer_active <- reactiveValues(active = FALSE)
       
       applied_filters <- reactiveValues(data = list(
         'attackType' = NULL,
@@ -99,9 +93,9 @@ function(input, output, session) {
         basemap
       })
       
-      all_attacks <- reactiveVal(FALSE)
-      all_protocol <- reactiveVal(FALSE)
-      all_targets <- reactiveVal(FALSE)
+      all_attacks <- reactiveVal(TRUE)
+      all_protocol <- reactiveVal(TRUE)
+      all_targets <- reactiveVal(TRUE)
       
       # # Only calls it once since valid_attacks is only processed once
       updateSelectizeInput(session, 'attack_type', choices = c("All", unique(valid_attacks$attack_type)), server = TRUE)

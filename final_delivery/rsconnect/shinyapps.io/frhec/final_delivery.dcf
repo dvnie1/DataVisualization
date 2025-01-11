@@ -5,7 +5,7 @@ account: frhec
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 13681193
-bundleId:
+bundleId: 9634177
 url: https://frhec.shinyapps.io/final_delivery/
 version: 1
 asMultiple: FALSE

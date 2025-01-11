@@ -8,7 +8,7 @@
         },
         "ghcr.io/rocker-org/devcontainer-features/rstudio-server": {},
         "ghcr.io/rocker-org/devcontainer-features/r-packages:1": {
-            "packages": "cli,rlang,shiny,maps,mapproj,quantmod,geojsonio,snakecase,leaflet,dplyr,ggplot2,shinycssloaders,plotly,lubridate",
+            "packages": "cli,rlang,shiny,maps,mapproj,quantmod,geojsonio,snakecase,leaflet,dplyr,ggplot2,shinycssloaders,plotly,lubridate,cluster",
             "installSystemRequirements": true
         },
         "ghcr.io/rocker-org/devcontainer-features/r-history:0": {}

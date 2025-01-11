@@ -102,6 +102,4 @@ determine_filter_expr <- function(selector, key_name, session, oper_tracker){
     })
     
   }
-  
-  return(NULL)
 }

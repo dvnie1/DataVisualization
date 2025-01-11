@@ -14,6 +14,7 @@ library(ggplot2)
 library(lubridate)
 library(purrr)
 library(ggplot2)
+library(cluster)
 
 source("global.R")
 
@@ -71,9 +72,11 @@ function(input, output, session) {
   # ===================
   # Visualization 1 Logic
   # ===================
-  
 
   observeEvent(input$tabs, {
+    
+    # Clean unused variables, free space
+    gc()
     
     if (input$tabs == "vis1") {
       
@@ -325,36 +328,47 @@ function(input, output, session) {
       ##                    Visualization 3                          ##
       #################################################################
       
-      ml_attack_prediction <- data %>% filter(!is.na(payload_size_bytes) & !is.na(confidence_score)) %>% select(payload_size_bytes, ml_model, confidence_score, detection_label)
-      
+      ml_attack_prediction <- data %>% 
+        filter(!is.na(payload_size_bytes) & !is.na(confidence_score) & !is.na(ml_model)) %>% 
+        select(payload_size_bytes, ml_model, confidence_score, attack_type, ml_model)
       
       data_for_vis3 <- reactive({
-        # Prepare data for visualization 3
-          
+        min <- (input$prediction_confidence[1]/100)
+        max <- (input$prediction_confidence[2]/100)
+        grouped_attacks <- ml_attack_prediction %>% filter(confidence_score >= min & confidence_score < max)
         
-          data <- filtered_data %>% 
-          group_by(ml_model, confidence_level) %>% 
-          summarise(mean_payload = mean(payload_size_kb, na.rm = TRUE), .groups = "drop")
+        if(input$cluster_models){
+          clara_results <- clara(grouped_attacks$confidence_score, k=input$clusters_num)
+          grouped_attacks$cluster <- as.factor(paste("Cluster", clara_results$clustering))
+        }
         
-        return(data)
+        grouped_attacks
       })
       
-      output$vis3_plot <- renderPlot({
-        data <- data_for_vis3()
+      output$confidence_interval_cluster <- renderPlotly({
+        df <- data_for_vis3()
         
-        ggplot(data, aes(x = ml_model, y = mean_payload, fill = ml_model)) +
-          geom_bar(stat = "identity") +
-          facet_wrap(~ confidence_level) +  # Separate plot for each confidence level
-          theme_minimal() +
-          labs(
-            title = "Payload Size by ML Model and Confidence Level",
-            x = "ML Model",
-            y = "Payload Size (kB)"
-          ) +
-          theme(
-            axis.text.x = element_text(angle = 45, hjust = 1),
-            legend.position = "none"
-          )
+        if(nrow(df) != 0){
+          g_plot <- ggplot(df, aes(x = ml_model, y = payload_size_bytes, fill = ml_model)) + theme_minimal() 
+          
+          if(input$cluster_models){
+            g_plot <- g_plot + facet_wrap(~cluster, ncol = input$clusters) + 
+              theme(
+                axis.text.x = element_text(angle = 90, hjust = 1),  # Rotate x-axis text
+                legend.position = "right"
+              ) 
+          }
+          
+          g_plot <- g_plot + geom_boxplot() +
+            labs(title = "Customized Box Plot",
+                 x = "Group",
+                 y = "Value") +
+            scale_fill_brewer(palette = "Set2")
+          
+          ggplotly(g_plot)
+        }else{
+          NULL 
+        }
       })
     }
   })
